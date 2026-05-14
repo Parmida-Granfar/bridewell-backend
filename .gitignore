@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django
+*.log
+*.pot
+*.pyc
+*.sqlite3
+db.sqlite3
+/media
+/staticfiles
+
+# Virtual environment
+venv/
+ENV/
+.env
+
+# macOS
+.DS_Store
+
+# Project data / exports
+mnt/
+studentlogs/
+passport/
