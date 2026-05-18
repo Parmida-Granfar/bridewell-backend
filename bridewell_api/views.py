@@ -32,6 +32,7 @@ from .nlp_utils import (
 )
 from .serializers import (
     BehaviorMixSerializer,
+    ClassInteractionSummarySerializer,
     ClassSummarySerializer,
     CognitiveLoadItemSerializer,
     EngagementTimelineItemSerializer,
@@ -280,6 +281,75 @@ class EngagementTimelineView(APIView):
 
         serializer = EngagementTimelineItemSerializer(data=data, many=True)
         serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
+
+
+class InteractionSummaryView(APIView):
+    """GET /api/v1/metrics/interaction-summary/ - summary of student help-seeking patterns.
+
+    Breaks down student interactions by action type (chat, hint, rephrase, simplify).
+    Shows frequency of each action per student and overall class patterns.
+
+    Query params
+    -----------
+    - live: bool (default true) — set false to compute on all stored messages
+
+    Response schema
+    ---------------
+    {
+      "total_interactions": 145,
+      "students_count": 4,
+      "action_breakdown": {"chat": 80, "hint": 30, "rephrase": 20, "simplify": 15},
+      "top_actions_per_student": {
+        "TOM": {"chat": 25, "hint": 10},
+        "PRIYA": {"chat": 20, "hint": 15}
+      },
+      "by_student": [
+        {
+          "student_id": "TOM",
+          "total_interactions": 35,
+          "by_action": {"chat": 25, "hint": 10},
+          "sessions_count": 3
+        }
+      ]
+    }
+    """
+
+    def get(self, request: Request) -> Response:
+        qs = _live_queryset() if _use_live_messages(request) else _all_queryset()
+
+        # Group by student
+        summary_by_student = defaultdict(lambda: {"by_action": Counter(), "sessions": set()})
+        action_counter = Counter()
+
+        for msg in qs:
+            action = msg.action_type or "chat"
+            summary_by_student[msg.student_id]["by_action"][action] += 1
+            summary_by_student[msg.student_id]["sessions"].add(msg.session_id)
+            action_counter[action] += 1
+
+        student_summaries = [
+            {
+                "student_id": sid,
+                "total_interactions": sum(data["by_action"].values()),
+                "by_action": dict(data["by_action"]),
+                "sessions_count": len(data["sessions"]),
+            }
+            for sid, data in sorted(summary_by_student.items())
+        ]
+
+        class_summary = {
+            "total_interactions": sum(s["total_interactions"] for s in student_summaries),
+            "students_count": len(student_summaries),
+            "action_breakdown": dict(action_counter),
+            "top_actions_per_student": {
+                sid: dict(data["by_action"])
+                for sid, data in summary_by_student.items()
+            },
+            "by_student": student_summaries,
+        }
+
+        serializer = ClassInteractionSummarySerializer(class_summary)
         return Response(serializer.data)
 
 

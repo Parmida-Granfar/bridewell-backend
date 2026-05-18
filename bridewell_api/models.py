@@ -15,6 +15,12 @@ class ChatMessage(models.Model):
         STUDENT = "student", "Student"
         ASSISTANT = "assistant", "Assistant"
 
+    class ActionType(models.TextChoices):
+        CHAT = "chat", "Chat"
+        REPHRASE = "rephrase", "Rephrase"
+        SIMPLIFY = "simplify", "Simplify"
+        HINT = "hint", "Hint"
+
     # Core fields
     text = models.TextField()
     sender_type = models.CharField(
@@ -43,6 +49,13 @@ class ChatMessage(models.Model):
         max_length=128,
         blank=True,
         help_text="Optional original message ID from the source log.",
+    )
+    action_type = models.CharField(
+        max_length=16,
+        choices=ActionType.choices,
+        default="chat",
+        db_index=True,
+        help_text="Type of interaction: chat, rephrase, simplify, hint.",
     )
 
     class Meta:
