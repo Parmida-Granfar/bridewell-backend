@@ -146,3 +146,18 @@ class LearningPreferencesSerializer(serializers.Serializer):
     summary = SummaryBlockSerializer()
     passport_signals = PassportSignalsSerializer()
     chat_signals = ChatSignalsSerializer()
+
+
+class StudentInteractionSummarySerializer(serializers.Serializer):
+    student_id = serializers.CharField()
+    total_interactions = serializers.IntegerField()
+    by_action = serializers.DictField(child=serializers.IntegerField())
+    sessions_count = serializers.IntegerField()
+
+
+class ClassInteractionSummarySerializer(serializers.Serializer):
+    total_interactions = serializers.IntegerField()
+    students_count = serializers.IntegerField()
+    action_breakdown = serializers.DictField(child=serializers.IntegerField())
+    top_actions_per_student = serializers.DictField(child=serializers.DictField(child=serializers.IntegerField()))
+    by_student = StudentInteractionSummarySerializer(many=True)

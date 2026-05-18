@@ -386,6 +386,33 @@ class TopicWrestlingViewTests(APITestCase):
             self.assertIsInstance(item["count"], int)
 
 
+class InteractionSummaryViewTests(APITestCase):
+    def setUp(self):
+        _db_msg("What is this?", "student", "TOM", 300)
+        _db_msg("Here is the answer", "assistant", "TOM", 200)
+        _db_msg("I need a hint", "student", "PRIYA", 250)
+
+    def test_returns_200(self):
+        response = self.client.get("/api/v1/metrics/interaction-summary/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_response_contains_summary_keys(self):
+        response = self.client.get("/api/v1/metrics/interaction-summary/")
+        data = response.json()
+        self.assertIn("total_interactions", data)
+        self.assertIn("students_count", data)
+        self.assertIn("action_breakdown", data)
+        self.assertIn("by_student", data)
+
+    def test_by_student_structure(self):
+        response = self.client.get("/api/v1/metrics/interaction-summary/")
+        data = response.json()
+        for student_summary in data["by_student"]:
+            self.assertIn("student_id", student_summary)
+            self.assertIn("total_interactions", student_summary)
+            self.assertIn("by_action", student_summary)
+
+
 class ClassSummaryViewTests(APITestCase):
     def setUp(self):
         _db_msg("I don't understand how to compare fractions", "student", "TOM", 300)
