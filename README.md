@@ -9,6 +9,8 @@ A Django-based backend for classroom analytics and cognitive-load monitoring. Th
 - `behavior-mix`: class-level breakdown of student behaviour types.
 - `engagement-timeline`: bucketed engagement scores over time.
 - `class-summary`: aggregate metrics for a class with passport summary insights.
+- Interpretable evidence: metric responses include exact student chat quotes where the route returns an AI judgement or recommendation.
+- Dual NLP modes: use `engine=simple`/`engine=spacy` for faster pattern and spaCy analysis, or `engine=bert` for semantic BERT embeddings where supported.
 - Passport-aware scoring using `StudentPassport` records.
 - Supports importing student logs and passport documents via Django management commands.
 
@@ -61,13 +63,21 @@ Returns a list of student cognitive load scores.
 
 Query params:
 - `live` (optional, default `true`) — use `false` to compute over all stored messages instead of the last 60 minutes.
+- `engine` (optional, default `simple`) — use `bert` for semantic matching.
+- `details` (optional, default `false`) — use `true` for the full signal breakdown.
 
 Response example:
 
 ```json
 [
-  {"student_id": "TOM", "score": 0.82},
-  {"student_id": "PRIYA", "score": 0.64}
+  {
+    "student_id": "TOM",
+    "score": 0.82,
+    "engine": "spacy",
+    "message_count": 6,
+    "reasons": ["2 student confusion cue(s)"],
+    "evidence": [{"quote": "I don't understand why fractions work this way"}]
+  }
 ]
 ```
 
@@ -78,13 +88,18 @@ Returns the top topics students are struggling with.
 Query params:
 - `live` (optional, default `true`)
 - `top_n` (optional, default `10`)
+- `engine` (optional, default `simple`) — use `bert` for semantic matching.
 
 Response example:
 
 ```json
 [
-  {"topic": "fractions", "count": 12},
-  {"topic": "division", "count": 8}
+  {
+    "topic": "fractions",
+    "count": 12,
+    "engine": "spacy",
+    "evidence": [{"quote": "I'm confused about equivalent fractions"}]
+  }
 ]
 ```
 
@@ -99,6 +114,7 @@ Returns a teacher-facing overview of the class, including:
 
 Query params:
 - `live` (optional, default `true`)
+- `engine` (optional, default `simple`) — use `bert` for semantic matching.
 
 ### `GET /api/v1/metrics/engagement-timeline/`
 
@@ -133,17 +149,27 @@ Response example:
 }
 ```
 
+Use `details=true` to include the selected engine and exact chat evidence grouped by behaviour category.
+
 ### `GET /api/v1/metrics/chat-summary/<student_id>/`
 
 Returns a summary and signals for an individual student chat.
+
+Query params:
+- `live` (optional, default `true`)
+- `engine` (optional, default `simple`) — use `bert` for semantic matching.
 
 ### `GET /api/v1/metrics/pair-ups/`
 
 Returns pair-up suggestions for student collaboration.
 
+Suggestions are generated from stored student chatlogs and include exact evidence from each suggested partner.
+
 ### `GET /api/v1/metrics/learning-preferences/<student_id>/`
 
 Returns a student’s learning preferences summary.
+
+The summary combines passport fields with observed chatlog patterns and includes exact evidence under `chat_signals.evidence`.
 
 ## Metrics Behavior
 
